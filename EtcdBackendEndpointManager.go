@@ -3,21 +3,20 @@ package GoEndpointManager
 import (
 	"errors"
 	"fmt"
+	"go.etcd.io/etcd/client/v3"
 	"log"
 	"strings"
 	"time"
 
 	"context"
 	"sync"
-
-	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 //EtcdEnpointManager Endpoint manager for backend service using etcd
 type EtcdBackendEndpointManager struct {
 	InMemEndpointManager
 	EtcdEndpoints []string
-	client        *etcdv3.Client
+	client        *clientv3.Client
 
 	rootService      string
 	EndpointsMap     sync.Map //value is an array of Endpoint : []*Endpoint
@@ -62,7 +61,7 @@ func (o *EtcdBackendEndpointManager) getFromEtcd(serviceID string) (host, port s
 
 		go o.MonitorChan(ch)
 
-		opts := []etcdv3.OpOption{etcdv3.WithPrefix()}
+		opts := []clientv3.OpOption{clientv3.WithPrefix()}
 		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 		resp, gerr := o.client.Get(ctx, serviceID, opts...)
 		cancel()
@@ -221,16 +220,16 @@ func (o *EtcdBackendEndpointManager) Start() bool {
 		return false
 	}
 
-	cfg := etcdv3.Config{
+	cfg := clientv3.Config{
 		Endpoints: o.EtcdEndpoints,
 	}
-	aClient, err := etcdv3.New(cfg)
+	aClient, err := clientv3.New(cfg)
 	if err != nil {
 		return false
 	}
 	o.client = aClient
 
-	opts := []etcdv3.OpOption{etcdv3.WithPrefix()}
+	opts := []clientv3.OpOption{clientv3.WithPrefix()}
 	if len(o.rootService) > 0 {
 
 		rootWatchan := aClient.Watch(context.Background(), o.rootService, opts...)
@@ -298,11 +297,11 @@ func (o *EtcdBackendEndpointManager) removeEndpoint(ep *Endpoint, serviceID stri
 }
 
 //MonitorChan monitor an etcd watcher channel
-func (o *EtcdBackendEndpointManager) MonitorChan(wchan etcdv3.WatchChan) {
+func (o *EtcdBackendEndpointManager) MonitorChan(wchan clientv3.WatchChan) {
 	for wresp := range wchan {
 		for _, ev := range wresp.Events {
 			//fmt.Printf("Watch V3 .... %s %q : %q\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
-			if ev.Type == etcdv3.EventTypePut {
+			if ev.Type == clientv3.EventTypePut {
 				// val := string(ev.Kv.Value)
 				serviceFullPath := string(ev.Kv.Key)
 				// o.parseServiceFromString(serviceID, val)
@@ -311,7 +310,7 @@ func (o *EtcdBackendEndpointManager) MonitorChan(wchan etcdv3.WatchChan) {
 					o.addEndpoint(ep, serviceID)
 				}
 
-			} else if ev.Type == etcdv3.EventTypeDelete {
+			} else if ev.Type == clientv3.EventTypeDelete {
 				serviceFullPath := string(ev.Kv.Key)
 				// o.parseServiceFromString(serviceID, val)
 				err, ep, serviceID := o.parseEndpointFromPath(serviceFullPath)

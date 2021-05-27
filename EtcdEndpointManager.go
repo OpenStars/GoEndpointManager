@@ -3,11 +3,11 @@ package GoEndpointManager
 import (
 	"strings"
 
-	// etcdv3 "github.com/coreos/etcd/clientv3"
+	// etcdv3 "go.etcd.io/etcd/client/v3"
 	"context"
 	"sync"
 
-	etcdv3 "go.etcd.io/etcd/clientv3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 )
 
 // //EnpointManagerIf interface of enpoint manager

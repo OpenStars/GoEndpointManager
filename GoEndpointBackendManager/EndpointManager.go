@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	etcdv3 "go.etcd.io/etcd/clientv3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 )
 
 // Quan ly cac endpoint dua tren 1 duong dan goc
